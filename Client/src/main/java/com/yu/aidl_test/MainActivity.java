@@ -13,6 +13,7 @@ import android.view.View;
 
 import com.yu.aidl_test.aidl.Book;
 import com.yu.aidl_test.aidl.IBookManager;
+import com.yu.aidl_test.aidl.INewBookArriveListener;
 import com.yu.aidl_test.aidl.R;
 
 import java.util.Date;
@@ -36,16 +37,32 @@ public class MainActivity extends AppCompatActivity {
         bindService(intent, conn, Service.BIND_AUTO_CREATE);
     }
 
+
+    private INewBookArriveListener mListener = new INewBookArriveListener() {
+        @Override
+        public void onNewBookArrive(Book book) throws RemoteException {
+            Log.e("TAG", "NewBookArrive=" + book.toString());
+        }
+
+        @Override
+        public IBinder asBinder() {
+            return null;
+        }
+    };
+
     class RemoteServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             recipient = new RemoteDeathRecipient();
+            bookManager = IBookManager.Stub.asInterface(service);
             try {
+                // 注册新书提醒
+                bookManager.registerNewBookArriveListener(mListener);
+                Log.e("com.yu.aidl_test", "registerNewBookArriveListener");
                 service.linkToDeath(recipient, 0);   // 注册死亡监听
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            bookManager = IBookManager.Stub.asInterface(service);
         }
 
         @Override
@@ -61,6 +78,11 @@ public class MainActivity extends AppCompatActivity {
             if (bookManager == null) return;
             bookManager.asBinder().unlinkToDeath(recipient, 0);
             bookManager = null;
+            try {
+                bookManager.unregisterNewBookArriveListener(mListener);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
             // 可以选择重新绑定服务
         }
     }
@@ -99,6 +121,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }.start();
         }
+    }
+
+    public void register(View view) {
+        try {
+            bookManager.registerNewBookArriveListener(mListener);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void unregister(View view) {
+        try {
+            bookManager.unregisterNewBookArriveListener(mListener);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
     }
 
     protected String list2String(List<Book> list) {

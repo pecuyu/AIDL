@@ -2,6 +2,7 @@
 package com.yu.aidl_test.aidl;
 
 import com.yu.aidl_test.aidl.Book;
+import com.yu.aidl_test.aidl.INewBookArriveListener;
 // Declare any non-default types here with import statements
 
 interface IBookManager {
@@ -16,4 +17,11 @@ interface IBookManager {
     List<Book> getBookList();
     // 添加书籍
     void addBook(in Book book);
+
+    // 注册新书提醒
+    void registerNewBookArriveListener(INewBookArriveListener listener);
+
+    // 取消新书提醒
+    void unregisterNewBookArriveListener(INewBookArriveListener listener);
+
 }

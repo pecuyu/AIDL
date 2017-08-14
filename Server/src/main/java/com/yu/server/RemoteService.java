@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.yu.aidl_test.aidl.Book;
 import com.yu.aidl_test.aidl.IBookManager;
+import com.yu.aidl_test.aidl.INewBookArriveListener;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,6 +18,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class RemoteService extends Service {
     // 支持并发读写
     List<Book> bookList = new CopyOnWriteArrayList<>();
+    List<INewBookArriveListener> listenerList = new CopyOnWriteArrayList<>();
+
+    private boolean mIsServiceDestory = false;
 
     public RemoteService() {
     }
@@ -27,6 +31,7 @@ public class RemoteService extends Service {
         Log.e("com.yu.server", "onCreate");
         bookList.add(new Book(1, "art programming"));
         bookList.add(new Book(2, "first line code 2"));
+        new Thread(new ServiceWorker()).start();
 
     }
 
@@ -55,6 +60,25 @@ public class RemoteService extends Service {
                 //    System.out.println("bookList.toString()=" + list2String(bookList));
             }
         }
+
+        @Override
+        public void registerNewBookArriveListener(INewBookArriveListener listener) throws RemoteException {
+            if (listener != null && listenerList != null) {
+                Log.e("com.yu.server", "registerNewBookArriveListener");
+                if (!listenerList.contains(listener)) {
+                    listenerList.add(listener);
+                }
+            }
+        }
+
+        @Override
+        public void unregisterNewBookArriveListener(INewBookArriveListener listener) throws RemoteException {
+            if (listener != null && listenerList != null) {
+                if (listenerList.contains(listener)) {
+                    listenerList.remove(listener);
+                }
+            }
+        }
     };
 
     protected String list2String(List<Book> list) {
@@ -63,5 +87,33 @@ public class RemoteService extends Service {
             sb.append(b.toString() + "\n");
         }
         return sb.toString();
+    }
+
+    class ServiceWorker implements Runnable {
+        @Override
+        public void run() {
+            while (!mIsServiceDestory) {
+                Book book = new Book(bookList.size(), "book" + bookList.size());
+                bookList.add(book);
+                for (int i = 0; i < listenerList.size(); i++) {  // 通知更新
+                    INewBookArriveListener listener = listenerList.get(i);
+                    if (listener != null) {
+                        try {
+                            listener.onNewBookArrive(book);
+                            Log.e("com.yu.server", "listener.onNewBookArrive");
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                SystemClock.sleep(3000);
+            }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mIsServiceDestory = true;
     }
 }
