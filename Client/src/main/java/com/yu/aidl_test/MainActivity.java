@@ -21,6 +21,7 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     IBookManager bookManager;
+    RemoteDeathRecipient recipient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,18 +39,29 @@ public class MainActivity extends AppCompatActivity {
     class RemoteServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            bookManager = IBookManager.Stub.asInterface(service);
+            recipient = new RemoteDeathRecipient();
             try {
-                bookManager.addBook(new Book(3, "good work"));
+                service.linkToDeath(recipient,0);   // 注册死亡监听
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-
+            bookManager = IBookManager.Stub.asInterface(service);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
 
+        }
+    }
+
+    class RemoteDeathRecipient implements IBinder.DeathRecipient {
+
+        @Override
+        public void binderDied() {
+            if (bookManager==null) return;
+            bookManager.asBinder().unlinkToDeath(recipient, 0);
+            bookManager = null;
+            // 可以选择重新绑定服务
         }
     }
 

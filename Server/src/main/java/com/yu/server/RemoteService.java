@@ -10,11 +10,12 @@ import android.util.Log;
 import com.yu.aidl_test.aidl.Book;
 import com.yu.aidl_test.aidl.IBookManager;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class RemoteService extends Service {
-    List<Book> bookList = new ArrayList<>();
+    // 支持并发读写
+    List<Book> bookList = new CopyOnWriteArrayList<>();
 
     public RemoteService() {
     }
