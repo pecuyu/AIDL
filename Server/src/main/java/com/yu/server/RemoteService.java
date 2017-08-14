@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.yu.aidl_test.aidl.Book;
@@ -43,6 +44,7 @@ public class RemoteService extends Service {
 
         @Override
         public List<Book> getBookList() throws RemoteException {
+            SystemClock.sleep(5000);  // 模拟耗时
             return bookList;
         }
 
@@ -50,7 +52,7 @@ public class RemoteService extends Service {
         public void addBook(Book book) throws RemoteException {
             if (book != null && bookList != null) {
                 bookList.add(book);
-            //    System.out.println("bookList.toString()=" + list2String(bookList));
+                //    System.out.println("bookList.toString()=" + list2String(bookList));
             }
         }
     };
@@ -58,7 +60,7 @@ public class RemoteService extends Service {
     protected String list2String(List<Book> list) {
         StringBuilder sb = new StringBuilder();
         for (Book b : list) {
-            sb.append(b.toString()+"\n");
+            sb.append(b.toString() + "\n");
         }
         return sb.toString();
     }

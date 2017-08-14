@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             recipient = new RemoteDeathRecipient();
             try {
-                service.linkToDeath(recipient,0);   // 注册死亡监听
+                service.linkToDeath(recipient, 0);   // 注册死亡监听
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void binderDied() {
-            if (bookManager==null) return;
+            if (bookManager == null) return;
             bookManager.asBinder().unlinkToDeath(recipient, 0);
             bookManager = null;
             // 可以选择重新绑定服务
@@ -67,12 +67,19 @@ public class MainActivity extends AppCompatActivity {
 
     public void getBookList(View view) {
         if (bookManager != null) {
-            try {
-                List<Book> bookList = bookManager.getBookList();
-                Log.e("com.yu.aidl_test", list2String(bookList));
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        // 获取远程数据会挂起当前线程，放在子线程中执行
+                        List<Book> bookList = bookManager.getBookList();
+                        Log.e("com.yu.aidl_test", list2String(bookList));
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
+
 
         }
     }
@@ -80,13 +87,17 @@ public class MainActivity extends AppCompatActivity {
     public void addBook(View view) {
         if (bookManager != null) {
             int id = new Random(new Date().getTime()).nextInt();
-            Book book = new Book(id, "book" + id);
-            try {
-                bookManager.addBook(book);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-
+            final Book book = new Book(id, "book" + id);
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        bookManager.addBook(book);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
         }
     }
 
