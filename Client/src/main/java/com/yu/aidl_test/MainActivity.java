@@ -37,28 +37,24 @@ public class MainActivity extends AppCompatActivity {
         bindService(intent, conn, Service.BIND_AUTO_CREATE);
     }
 
+    // 实现INewBookArriveListener.Stub
+    private INewBookArriveListener mListener = new INewBookArriveListener.Stub(){
 
-    private INewBookArriveListener mListener = new INewBookArriveListener() {
         @Override
-        public void onNewBookArrive(Book book) throws RemoteException {
+        public void onNewBookArrive(Book book) throws RemoteException {  // 运行与远程binder线程池，需切换到主线程
             Log.e("TAG", "NewBookArrive=" + book.toString());
-        }
-
-        @Override
-        public IBinder asBinder() {
-            return null;
         }
     };
 
     class RemoteServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            recipient = new RemoteDeathRecipient();
             bookManager = IBookManager.Stub.asInterface(service);
             try {
-                // 注册新书提醒
+                // 注册新书提醒 registerNewBookArriveListener
                 bookManager.registerNewBookArriveListener(mListener);
                 Log.e("com.yu.aidl_test", "registerNewBookArriveListener");
+                recipient = new RemoteDeathRecipient();
                 service.linkToDeath(recipient, 0);   // 注册死亡监听
             } catch (RemoteException e) {
                 e.printStackTrace();

@@ -2,7 +2,6 @@ package com.yu.server;
 
 import android.app.Service;
 import android.content.Intent;
-import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -17,8 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class RemoteService extends Service {
     // 支持并发读写
-    List<Book> bookList = new CopyOnWriteArrayList<>();
-    List<INewBookArriveListener> listenerList = new CopyOnWriteArrayList<>();
+    CopyOnWriteArrayList<Book> bookList = new CopyOnWriteArrayList<>();
+    CopyOnWriteArrayList<INewBookArriveListener> listenerList = new CopyOnWriteArrayList<INewBookArriveListener>();
 
     private boolean mIsServiceDestory = false;
 
@@ -37,15 +36,10 @@ public class RemoteService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return BookManager;
+        return bookManager;
     }
 
-    private Binder BookManager = new IBookManager.Stub() {
-
-        @Override
-        public void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat, double aDouble, String aString) throws RemoteException {
-
-        }
+    private IBookManager.Stub bookManager = new IBookManager.Stub() {
 
         @Override
         public List<Book> getBookList() throws RemoteException {
@@ -63,8 +57,8 @@ public class RemoteService extends Service {
 
         @Override
         public void registerNewBookArriveListener(INewBookArriveListener listener) throws RemoteException {
+            Log.e("com.yu.server", "registerNewBookArriveListener");
             if (listener != null && listenerList != null) {
-                Log.e("com.yu.server", "registerNewBookArriveListener");
                 if (!listenerList.contains(listener)) {
                     listenerList.add(listener);
                 }
@@ -89,7 +83,7 @@ public class RemoteService extends Service {
         return sb.toString();
     }
 
-    class ServiceWorker implements Runnable {
+    private class ServiceWorker implements Runnable {
         @Override
         public void run() {
             while (!mIsServiceDestory) {
