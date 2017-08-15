@@ -3,6 +3,7 @@ package com.yu.server;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.util.Log;
@@ -17,8 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class RemoteService extends Service {
     // 支持并发读写
     CopyOnWriteArrayList<Book> bookList = new CopyOnWriteArrayList<>();
-    CopyOnWriteArrayList<INewBookArriveListener> listenerList = new CopyOnWriteArrayList<INewBookArriveListener>();
-
+    // CopyOnWriteArrayList<INewBookArriveListener> listenerList = new CopyOnWriteArrayList<INewBookArriveListener>();
+    RemoteCallbackList<INewBookArriveListener> callbackList = new RemoteCallbackList<>();
     private boolean mIsServiceDestory = false;
 
     public RemoteService() {
@@ -57,23 +58,33 @@ public class RemoteService extends Service {
 
         @Override
         public void registerNewBookArriveListener(INewBookArriveListener listener) throws RemoteException {
-            Log.e("com.yu.server", "registerNewBookArriveListener");
-            if (listener != null && listenerList != null) {
-                if (!listenerList.contains(listener)) {
-                    listenerList.add(listener);
-                }
-            }
+//            if (listener != null && listenerList != null) {
+//                if (!listenerList.contains(listener)) {
+//                    Log.e("com.yu.server", "registerNewBookArriveListener");
+//                    listenerList.add(listener);
+//                }
+//            }
+            callbackList.register(listener);
+            Log.e("com.yu.server", "registerNewBookArriveListener:"+callbackList.getRegisteredCallbackCount());
+
         }
 
         @Override
         public void unregisterNewBookArriveListener(INewBookArriveListener listener) throws RemoteException {
-            if (listener != null && listenerList != null) {
-                if (listenerList.contains(listener)) {
-                    listenerList.remove(listener);
-                }
-            }
+//            if (listener != null && listenerList != null) {
+//                if (listenerList.contains(listener)) {
+//                    listenerList.remove(listener);
+//                    Log.e("com.yu.server", "unregisterNewBookArriveListener");
+//                } else {
+//                    Log.e("com.yu.server", "listener not found,unregister failed");
+//                }
+//            }
+            callbackList.unregister(listener);
+            Log.e("com.yu.server", "unregisterNewBookArriveListener:"+callbackList.getRegisteredCallbackCount());
         }
     };
+
+
 
     protected String list2String(List<Book> list) {
         StringBuilder sb = new StringBuilder();
@@ -89,17 +100,27 @@ public class RemoteService extends Service {
             while (!mIsServiceDestory) {
                 Book book = new Book(bookList.size(), "book" + bookList.size());
                 bookList.add(book);
-                for (int i = 0; i < listenerList.size(); i++) {  // 通知更新
-                    INewBookArriveListener listener = listenerList.get(i);
-                    if (listener != null) {
-                        try {
-                            listener.onNewBookArrive(book);
-                            Log.e("com.yu.server", "listener.onNewBookArrive");
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        }
+//                for (int i = 0; i < listenerList.size(); i++) {  // 通知更新
+//                    INewBookArriveListener listener = listenerList.get(i);
+//                    if (listener != null) {
+//                        try {
+//                            listener.onNewBookArrive(book);
+//                            Log.e("com.yu.server", "listener.onNewBookArrive");
+//                        } catch (RemoteException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+                int n = callbackList.beginBroadcast();
+                for (int i = 0; i < n; i++) {
+                    INewBookArriveListener listener = callbackList.getBroadcastItem(i);
+                    try {
+                        if (listener != null) listener.onNewBookArrive(book);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
                     }
                 }
+                callbackList.finishBroadcast();
                 SystemClock.sleep(3000);
             }
         }

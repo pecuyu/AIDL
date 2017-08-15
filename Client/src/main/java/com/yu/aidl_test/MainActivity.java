@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 实现INewBookArriveListener.Stub
-    private INewBookArriveListener mListener = new INewBookArriveListener.Stub(){
+    private INewBookArriveListener mListener = new INewBookArriveListener.Stub() {
 
         @Override
         public void onNewBookArrive(Book book) throws RemoteException {  // 运行与远程binder线程池，需切换到主线程
@@ -143,5 +143,15 @@ public class MainActivity extends AppCompatActivity {
             sb.append(b.toString() + "\n");
         }
         return sb.toString();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            if (bookManager != null) bookManager.unregisterNewBookArriveListener(mListener);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 }
