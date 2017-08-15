@@ -2,7 +2,9 @@ package com.yu.server;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -37,23 +39,31 @@ public class RemoteService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+//        int access = checkCallingOrSelfPermission("com.yu.server.ACCESS_BOOK_SERVICE");
+//        if (access == PackageManager.PERMISSION_DENIED) {
+//            return null;
+//        }
         return bookManager;
     }
 
     private IBookManager.Stub bookManager = new IBookManager.Stub() {
 
+        // 运行于Binder线程池
         @Override
         public List<Book> getBookList() throws RemoteException {
             SystemClock.sleep(5000);  // 模拟耗时
             return bookList;
         }
 
+        // 运行于Binder线程池
         @Override
         public void addBook(Book book) throws RemoteException {
             if (book != null && bookList != null) {
                 bookList.add(book);
-                //    System.out.println("bookList.toString()=" + list2String(bookList));
+//                    System.out.println("bookList.toString()=" + list2String(bookList));
+                Log.e("TAG", "addBook=" + book.toString());
             }
+
         }
 
         @Override
@@ -81,6 +91,29 @@ public class RemoteService extends Service {
 //            }
             callbackList.unregister(listener);
             Log.e("com.yu.server", "unregisterNewBookArriveListener:"+callbackList.getRegisteredCallbackCount());
+        }
+
+        @Override
+        public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            // 进行权限验证
+            Log.e("TAG","onTransact : code:" + code + "---flags:" + flags);
+            int access = checkCallingOrSelfPermission("com.yu.server.ACCESS_BOOK_SERVICE");
+            if (access == PackageManager.PERMISSION_DENIED) {
+                Log.e("TAG", "onTransact: permission denied");
+                return false;
+            }
+
+            String packageName = null;
+            String[] packages = getPackageManager().getPackagesForUid(getCallingUid());
+            if (packages != null && packages.length > 0) {
+                packageName = packages[0];
+            }
+            if (packageName == null || !packageName.startsWith("com.yu")) {
+                Log.e("TAG", "packageName doesn't startsWith 'com.yu' ");
+                return false;
+            }
+
+            return super.onTransact(code, data, reply, flags);
         }
     };
 

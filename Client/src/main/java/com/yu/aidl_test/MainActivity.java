@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,9 +40,10 @@ public class MainActivity extends AppCompatActivity {
 
     // 实现INewBookArriveListener.Stub
     private INewBookArriveListener mListener = new INewBookArriveListener.Stub() {
-
+        // 运行于本地binder线程池，需切换到主线程
         @Override
-        public void onNewBookArrive(Book book) throws RemoteException {  // 运行与远程binder线程池，需切换到主线程
+        public void onNewBookArrive(Book book) throws RemoteException {
+            SystemClock.sleep(6000);
             Log.e("TAG", "NewBookArrive=" + book.toString());
         }
     };
@@ -50,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             bookManager = IBookManager.Stub.asInterface(service);
+            if (bookManager == null) {
+                Log.e("com.yu.aidl_test.aidl", "bind failed");
+                return;
+            }
             try {
                 // 注册新书提醒 registerNewBookArriveListener
                 bookManager.registerNewBookArriveListener(mListener);
@@ -116,6 +122,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }.start();
+        } else {
+            Log.e("TAG", "bookManager is null,add failed");
         }
     }
 
